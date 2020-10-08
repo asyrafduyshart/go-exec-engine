@@ -90,7 +90,7 @@ func validateJSON(command Command, data string) error {
 		return err
 	}
 	if result.Valid() {
-		log.Error("The document is valid")
+		log.Info("Data is valid & verified")
 	} else {
 		log.Error("The document is not valid. see errors :")
 		for _, desc := range result.Errors() {
