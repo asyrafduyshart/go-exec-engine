@@ -44,7 +44,7 @@ GOPATH=$BUILD_DIR:$GOPATH
 cd $BUILD_DIR
 mkdir -p bin
 go build ./cmd/main.go
-mv main ./bin/goexec
+mv main ./goexec
 
 EXIT_STATUS=$?
 

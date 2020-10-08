@@ -1,7 +1,17 @@
 log_level: debug
 access_log:
 commands:
-  - target: "trigger-test"
+  - name: "trigger"
+    target: "trigger-test"
+    type: "yomama"
     exec: "echo yomama"
-  - target: "exec-test"
+    validate: false
+    schema-type: "avro"
+    schema: "test.avsc"
+  - name: "exec"
+    target: "exec-test"
+    type: "http"
     exec: "./test.sh"
+    validate: true
+    schema-type: "json"
+    schema: "./schema/test.avsc"

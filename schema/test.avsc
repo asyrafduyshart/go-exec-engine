@@ -1,0 +1,19 @@
+{
+    "type" : "record",
+    "name" : "example_schema",
+    "namespace" : "com.example.avro",
+    "fields" : [
+      {
+        "name" : "jojomama",
+        "type" : "string",
+        "doc" : "Test data schema"
+      },
+      {
+        "name" : "username",
+        "type" : ["null", "string"],
+        "doc" : "Test data schema",
+        "default": null
+      }
+  ],
+    "doc:" : "A basic schema for storing example messages"
+}

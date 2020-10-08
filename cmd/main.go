@@ -16,6 +16,7 @@ import (
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
 	tools "github.com/asyrafduyshart/go-exec-engine/tools"
 
+	"github.com/go-playground/validator"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -180,20 +181,33 @@ func main() {
 	count := 0
 	exitChan := make(chan int)
 	for _, command := range conf.Command {
-		go func(c execute.Command) {
-			log.Info("Topic %v", c.Target)
-			err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
-				execute.Execute(c, data)
-			})
-			if err != nil {
-				log.Error("Error in topic %v", c.Target)
-				log.Error("Error: %v", err)
-			} else {
-				log.Info("Server now listning to pubsub topic %v", c.Target)
+		var validate *validator.Validate
+		validate = validator.New()
+		err := validate.Struct(command)
+		if err != nil {
+			if _, ok := err.(*validator.InvalidValidationError); ok {
+				log.Error("Validation Error: %v", err)
 			}
-			exitChan <- 0
-		}(command)
-		count++
+			for _, err := range err.(validator.ValidationErrors) {
+				log.Error("Field in %v: %v %v %v", command.Name, err.StructField(), err.ActualTag(), err.Param())
+				log.Error("Trigger: \"%v\" will not be executed", command.Name)
+			}
+		} else {
+			go func(c execute.Command) {
+				log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
+				err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
+					execute.Execute(c, data)
+				})
+				if err != nil {
+					log.Error("Error in topic %v", c.Target)
+					log.Error("Error: %v", err)
+				} else {
+					log.Info("Server now listning to pubsub topic %v", c.Target)
+				}
+				exitChan <- 0
+			}(command)
+			count++
+		}
 	}
 
 	for i := 0; i < count; i++ {
