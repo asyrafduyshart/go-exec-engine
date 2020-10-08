@@ -1,0 +1,7 @@
+log_level: debug
+access_log:
+commands:
+  - target: "trigger-test"
+    exec: "echo yomama"
+  - target: "exec-test"
+    exec: "./test.sh"
