@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strconv"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
 	"github.com/linkedin/goavro"
@@ -40,7 +41,8 @@ func Execute(command Command, data string) {
 	}
 
 	if command.Type == "bash" {
-		exec := []string{"bash", "-c", "echo " + data + " |" + " " + command.Exec}
+		s := strconv.Quote(string(data))
+		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
 		out, err := cmdExec(exec...)
 		if err != nil {
 			log.Error("Error %v:", err)
