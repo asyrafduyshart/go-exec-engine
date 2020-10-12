@@ -1,53 +1,43 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "http://example.com/example.json",
-    "type": "object",
-    "title": "The root schema",
-    "description": "The root schema comprises the entire JSON document.",
-    "default": {},
-    "examples": [
-        {
-            "name": "jojomama",
-            "type": "string",
-            "doc": "Test data schema"
-        }
-    ],
-    "required": [
-        "name",
-        "type",
-        "doc"
-    ],
-    "properties": {
-        "name": {
-            "$id": "#/properties/name",
-            "type": "string",
-            "title": "The name schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": "",
-            "examples": [
-                "jojomama"
-            ]
-        },
-        "type": {
-            "$id": "#/properties/type",
-            "type": "string",
-            "title": "The type schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": "",
-            "examples": [
-                "string"
-            ]
-        },
-        "doc": {
-            "$id": "#/properties/doc",
-            "type": "string",
-            "title": "The doc schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": "",
-            "examples": [
-                "Test data schema"
-            ]
-        }
-    },
-    "additionalProperties": true
+	"definitions": {},
+	"$schema": "http://json-schema.org/draft-07/schema#", 
+	"$id": "https://example.com/object1602475275.json", 
+	"title": "Root", 
+	"type": "object",
+	"required": [
+		"name",
+		"age",
+		"city"
+	],
+	"properties": {
+		"name": {
+			"$id": "#root/name", 
+			"title": "Name", 
+			"type": "string",
+			"default": "",
+			"examples": [
+				"John"
+			],
+			"pattern": "^.*$"
+		},
+		"age": {
+			"$id": "#root/age", 
+			"title": "Age", 
+			"type": "integer",
+			"examples": [
+				31
+			],
+			"default": 0
+		},
+		"city": {
+			"$id": "#root/city", 
+			"title": "City", 
+			"type": "string",
+			"default": "",
+			"examples": [
+				"New York"
+			],
+			"pattern": "^.*$"
+		}
+	}
 }
