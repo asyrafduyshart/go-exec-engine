@@ -17,9 +17,10 @@ import (
 // Command ..
 type Command struct {
 	Name       string `yaml:"name" validate:"required,alphanumunicode"`
+	Protocol	 string `yaml:"protocol"`
 	Target     string `yaml:"target" validate:"required"`
 	Exec       string `yaml:"exec" validate:"required"`
-	Type       string `yaml:"type" validate:"required,oneof=http bash"`
+	Type       string `yaml:"type" validate:"required,oneof=http bash exec"`
 	Validate   bool   `yaml:"validate"`
 	Schema     string `yaml:"schema"`
 	SchemaType string `yaml:"schema-type" validate:"oneof=json avro"`
@@ -43,7 +44,7 @@ func Execute(command Command, data string) {
 		}
 	}
 
-	if command.Type == "bash" {
+	if command.Type == "exec" {
 		s := strconv.Quote(string(data))
 		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
 		out, err := cmdExec(exec...)
@@ -52,7 +53,7 @@ func Execute(command Command, data string) {
 		}
 		log.Debug("Received Data %v", data)
 		log.Info("Output:  \n%v", out)
-	} else if command.Type == "exec" {
+	} else if command.Type == "bash" {
 		out, err := scriptExec(command.Exec, data)
 		if err != nil {
 			log.Error("Error %v:", err)

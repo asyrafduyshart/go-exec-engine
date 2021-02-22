@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 
 	execute "github.com/asyrafduyshart/go-exec-engine/pkg/execute"
@@ -84,7 +83,7 @@ func startArgs() *Config {
 
 func start() *Config {
 	if tools.Exist(PidFile) {
-		log.Warning("Goinx has bean started.")
+		log.Warning("Goinx has been started.")
 		os.Exit(0)
 	}
 
@@ -147,7 +146,7 @@ func shutdownHook() {
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				os.Remove("goinx.pid")
-				log.Info("Shutown Goinx.")
+				log.Info("Shutdown Goinx.")
 				os.Exit(0)
 			default:
 				log.Info("other", s)
@@ -194,20 +193,28 @@ func main() {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 			}
 		} else {
-			go func(c execute.Command) {
-				log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
-				err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
-					execute.Execute(c, data)
+			if command.Protocol == "pubsub" {
+				go func(c execute.Command) {
+					
+						log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
+						err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
+							execute.Execute(c, data)
+						})
+						if err != nil {
+							log.Error("Error in topic %v", c.Target)
+							log.Error("Error: %v", err)
+						} else {
+							log.Info("Server now listning to pubsub topic %v", c.Target)
+						}
+						exitChan <- 0
+				}(command)
+				count++
+			} else if command.Protocol == "http" {
+				app.Post(command.Target, func(c *fiber.Ctx) error {
+					execute.Execute(command, string(c.Body()))
+					return c.JSON(conf)
 				})
-				if err != nil {
-					log.Error("Error in topic %v", c.Target)
-					log.Error("Error: %v", err)
-				} else {
-					log.Info("Server now listning to pubsub topic %v", c.Target)
-				}
-				exitChan <- 0
-			}(command)
-			count++
+			}
 		}
 	}
 
@@ -219,30 +226,8 @@ func main() {
 		return c.SendString("Hello World!")
 	})
 
-	app.Post("*", func(c *fiber.Ctx) error {
-		// read config.yml
-		conf := Config{}
-		result, err := ioutil.ReadFile(*configPath)
-		if err != nil {
-			return err
-		}
-		err = yaml.Unmarshal([]byte(result), &conf)
-		
-		// get command slice based on url
-		splitURL := strings.Split(c.OriginalURL(),"/")
-		commandName := splitURL[1]
-		commandTarget := splitURL[2]
-
-		var ccc execute.Command
-		for _, command := range conf.Command {
-			if command.Name == commandName && command.Target == commandTarget {
-				ccc = command
-			}
-		}
-
-		execute.Execute(ccc, string(c.Body()))
-		return c.JSON(conf)
-	})
-
-	app.Listen(":3000")
+	// os.Setenv("PORT","3000")
+	port := os.Getenv("PORT")
+	fmt.Println("Listening to port:", port)
+	app.Listen(fmt.Sprintf(":%s",port))
 }
