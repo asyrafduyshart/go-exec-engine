@@ -8,16 +8,19 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	execute "github.com/asyrafduyshart/go-exec-engine/pkg/execute"
-	pubsub "github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
+	"github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
+	"github.com/go-playground/validator"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
 	tools "github.com/asyrafduyshart/go-exec-engine/tools"
 
-	"github.com/go-playground/validator"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Config ...
@@ -80,7 +83,6 @@ func startArgs() *Config {
 }
 
 func start() *Config {
-
 	if tools.Exist(PidFile) {
 		log.Warning("Goinx has bean started.")
 		os.Exit(0)
@@ -110,7 +112,6 @@ func start() *Config {
 		}
 		bytes = result
 	}
-
 	err := yaml.Unmarshal([]byte(bytes), &conf)
 	if err != nil {
 		log.Error("%v", err)
@@ -156,7 +157,7 @@ func shutdownHook() {
 }
 
 func main() {
-
+	app := fiber.New()
 	ctx := context.Background()
 
 	shutdownHook()
@@ -214,4 +215,34 @@ func main() {
 		<-exitChan
 	}
 
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello World!")
+	})
+
+	app.Post("*", func(c *fiber.Ctx) error {
+		// read config.yml
+		conf := Config{}
+		result, err := ioutil.ReadFile(*configPath)
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal([]byte(result), &conf)
+		
+		// get command slice based on url
+		splitURL := strings.Split(c.OriginalURL(),"/")
+		commandName := splitURL[1]
+		commandTarget := splitURL[2]
+
+		var ccc execute.Command
+		for _, command := range conf.Command {
+			if command.Name == commandName && command.Target == commandTarget {
+				ccc = command
+			}
+		}
+
+		execute.Execute(ccc, string(c.Body()))
+		return c.JSON(conf)
+	})
+
+	app.Listen(":3000")
 }
