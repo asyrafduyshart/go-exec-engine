@@ -2,16 +2,25 @@ log_level: debug
 access_log:
 commands:
   - name: "trigger"
+    protocol: "pubsub"
     target: "trigger-test"
-    type: "yomama"
+    type: "exec"
     exec: "echo yomama"
     validate: false
     schema-type: "avro"
     schema: "test.avsc"
   - name: "exec"
     target: "exec-test"
-    type: "http"
-    exec: "./test.sh"
+    type: "exec"
+    exec: "echo HelloWorld!"
     validate: true
     schema-type: "json"
     schema: "./schema/test.avsc"
+  - name: "deployfrontend"
+    protocol: "http"
+    target: "/deploy/frontend"
+    type: "bash"
+    exec: "./deploy-frontend.sh"
+    validate: true
+    schema-type: "json"
+    schema: "./schema/deploy-frontend.json"
