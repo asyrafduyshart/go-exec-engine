@@ -1,9 +1,12 @@
 package execute
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"reflect"
 	"strconv"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
@@ -14,9 +17,10 @@ import (
 // Command ..
 type Command struct {
 	Name       string `yaml:"name" validate:"required,alphanumunicode"`
+	Protocol	 string `yaml:"protocol"`
 	Target     string `yaml:"target" validate:"required"`
 	Exec       string `yaml:"exec" validate:"required"`
-	Type       string `yaml:"type" validate:"required,oneof=http bash"`
+	Type       string `yaml:"type" validate:"required,oneof=http bash exec"`
 	Validate   bool   `yaml:"validate"`
 	Schema     string `yaml:"schema"`
 	SchemaType string `yaml:"schema-type" validate:"oneof=json avro"`
@@ -40,10 +44,17 @@ func Execute(command Command, data string) {
 		}
 	}
 
-	if command.Type == "bash" {
+	if command.Type == "exec" {
 		s := strconv.Quote(string(data))
 		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
 		out, err := cmdExec(exec...)
+		if err != nil {
+			log.Error("Error %v:", err)
+		}
+		log.Debug("Received Data %v", data)
+		log.Info("Output:  \n%v", out)
+	} else if command.Type == "bash" {
+		out, err := scriptExec(command.Exec, data)
 		if err != nil {
 			log.Error("Error %v:", err)
 		}
@@ -119,5 +130,32 @@ func cmdExec(args ...string) (string, error) {
 		return "", err
 	}
 
+	return string(out), nil
+}
+
+func scriptExec(scriptName string, data string) (string, error) {
+	err := os.Chmod(scriptName,0744)
+	if err != nil {
+		return "", err
+	}
+	
+	cmd := exec.Command(scriptName)
+	cmd.Env = os.Environ()
+
+	var params map[string]interface{}
+	json.Unmarshal([]byte(data), &params)
+	reflectValue := reflect.ValueOf(params)
+
+	// env variables definition
+	param := reflectValue.MapRange()
+	for param.Next() {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s",param.Key(), param.Value()))
+	}
+
+	out, err := cmd.Output()
+	if err != nil {
+		fmt.Println("the err", err)
+		return "", err
+	}
 	return string(out), nil
 }

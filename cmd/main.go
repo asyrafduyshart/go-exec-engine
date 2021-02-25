@@ -11,13 +11,15 @@ import (
 	"syscall"
 
 	execute "github.com/asyrafduyshart/go-exec-engine/pkg/execute"
-	pubsub "github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
+	"github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
+	"github.com/go-playground/validator"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
 	tools "github.com/asyrafduyshart/go-exec-engine/tools"
 
-	"github.com/go-playground/validator"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Config ...
@@ -80,9 +82,8 @@ func startArgs() *Config {
 }
 
 func start() *Config {
-
 	if tools.Exist(PidFile) {
-		log.Warning("Goinx has bean started.")
+		log.Warning("Goinx has been started.")
 		os.Exit(0)
 	}
 
@@ -110,7 +111,6 @@ func start() *Config {
 		}
 		bytes = result
 	}
-
 	err := yaml.Unmarshal([]byte(bytes), &conf)
 	if err != nil {
 		log.Error("%v", err)
@@ -146,7 +146,7 @@ func shutdownHook() {
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				os.Remove("goinx.pid")
-				log.Info("Shutown Goinx.")
+				log.Info("Shutdown Goinx.")
 				os.Exit(0)
 			default:
 				log.Info("other", s)
@@ -156,7 +156,7 @@ func shutdownHook() {
 }
 
 func main() {
-
+	app := fiber.New()
 	ctx := context.Background()
 
 	shutdownHook()
@@ -193,20 +193,28 @@ func main() {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 			}
 		} else {
-			go func(c execute.Command) {
-				log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
-				err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
-					execute.Execute(c, data)
+			if command.Protocol == "pubsub" {
+				go func(c execute.Command) {
+					
+						log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
+						err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
+							execute.Execute(c, data)
+						})
+						if err != nil {
+							log.Error("Error in topic %v", c.Target)
+							log.Error("Error: %v", err)
+						} else {
+							log.Info("Server now listning to pubsub topic %v", c.Target)
+						}
+						exitChan <- 0
+				}(command)
+				count++
+			} else if command.Protocol == "http" {
+				app.Post(command.Target, func(c *fiber.Ctx) error {
+					execute.Execute(command, string(c.Body()))
+					return c.JSON(conf)
 				})
-				if err != nil {
-					log.Error("Error in topic %v", c.Target)
-					log.Error("Error: %v", err)
-				} else {
-					log.Info("Server now listning to pubsub topic %v", c.Target)
-				}
-				exitChan <- 0
-			}(command)
-			count++
+			}
 		}
 	}
 
@@ -214,4 +222,12 @@ func main() {
 		<-exitChan
 	}
 
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello World!")
+	})
+
+	// os.Setenv("PORT","3000")
+	port := os.Getenv("PORT")
+	fmt.Println("Listening to port:", port)
+	app.Listen(fmt.Sprintf(":%s",port))
 }
