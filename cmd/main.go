@@ -236,7 +236,7 @@ func main() {
 	// os.Setenv("PORT","3000")
 	port := os.Getenv("PORT")
 	fmt.Println("Listening to port:", port)
-	app.Listen(fmt.Sprintf(":%s", port))
+	app.Listen(fmt.Sprintf("0.0.0.0:%s", port))
 
 	for i := 0; i < count; i++ {
 		<-exitChan
