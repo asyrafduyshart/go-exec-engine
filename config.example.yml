@@ -3,7 +3,7 @@ access_log:
 commands:
   - name: "trigger"
     protocol: "pubsub"
-    target: "trigger-test"
+    target: "dev-trigger-task"
     type: "exec"
     exec: "echo yomama"
     validate: false

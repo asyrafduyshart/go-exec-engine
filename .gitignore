@@ -22,3 +22,4 @@ test.sh
 config.yml
 googlekey.json
 goexec
+.env

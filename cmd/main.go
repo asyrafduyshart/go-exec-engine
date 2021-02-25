@@ -20,6 +20,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 )
 
 // Config ...
@@ -156,6 +157,7 @@ func shutdownHook() {
 }
 
 func main() {
+	godotenv.Load()
 	app := fiber.New()
 	ctx := context.Background()
 
@@ -192,42 +194,51 @@ func main() {
 				log.Error("Field in %v: %v %v %v", command.Name, err.StructField(), err.ActualTag(), err.Param())
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 			}
+			count++
 		} else {
+			log.Info("Trigger(%v) protocol(%v): \"%v\" is listening to target: %v", command.Type, command.Protocol, command.Name, command.Target)
 			if command.Protocol == "pubsub" {
 				go func(c execute.Command) {
-					
-						log.Info("Trigger(%v): \"%v\" is listening to target: %v", c.Type, c.Name, c.Target)
-						err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
-							execute.Execute(c, data)
-						})
-						if err != nil {
-							log.Error("Error in topic %v", c.Target)
-							log.Error("Error: %v", err)
-						} else {
-							log.Info("Server now listning to pubsub topic %v", c.Target)
-						}
-						exitChan <- 0
+					err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
+						execute.Execute(c, data)
+					})
+					if err != nil {
+						log.Error("Error in topic %v", c.Target)
+						log.Error("Error: %v", err)
+					} else {
+						log.Info("Server now listning to pubsub topic %v", c.Target)
+					}
+					exitChan <- 0
 				}(command)
 				count++
 			} else if command.Protocol == "http" {
 				app.Post(command.Target, func(c *fiber.Ctx) error {
-					execute.Execute(command, string(c.Body()))
-					return c.JSON(conf)
+					err := execute.Execute(command, string(c.Body()))
+					if err != nil {
+						return c.JSON(map[string]string{
+							"type":    "ERROR",
+							"message": err.Error(),
+						})
+					}
+					return c.JSON(map[string]string{
+						"type":    "SUCCESS",
+						"message": "Task:" + command.Name + " has been executed",
+					})
 				})
 			}
 		}
 	}
 
-	for i := 0; i < count; i++ {
-		<-exitChan
-	}
-
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello World!")
+		return c.SendString("Execute Engine is Working!")
 	})
 
 	// os.Setenv("PORT","3000")
 	port := os.Getenv("PORT")
 	fmt.Println("Listening to port:", port)
-	app.Listen(fmt.Sprintf(":%s",port))
+	app.Listen(fmt.Sprintf(":%s", port))
+
+	for i := 0; i < count; i++ {
+		<-exitChan
+	}
 }

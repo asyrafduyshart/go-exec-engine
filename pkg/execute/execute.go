@@ -17,7 +17,7 @@ import (
 // Command ..
 type Command struct {
 	Name       string `yaml:"name" validate:"required,alphanumunicode"`
-	Protocol	 string `yaml:"protocol"`
+	Protocol   string `yaml:"protocol"`
 	Target     string `yaml:"target" validate:"required"`
 	Exec       string `yaml:"exec" validate:"required"`
 	Type       string `yaml:"type" validate:"required,oneof=http bash exec"`
@@ -27,19 +27,19 @@ type Command struct {
 }
 
 // Execute ..
-func Execute(command Command, data string) {
+func Execute(command Command, data string) error {
 	log.Info("Executed command %v", command.Exec)
 
 	if command.Validate {
 		if command.SchemaType == "avro" {
 			if err := validateAvro(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
-				return
+				return err
 			}
 		} else if command.SchemaType == "json" {
 			if err := validateJSON(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
-				return
+				return err
 			}
 		}
 	}
@@ -52,17 +52,17 @@ func Execute(command Command, data string) {
 			log.Error("Error %v:", err)
 		}
 		log.Debug("Received Data %v", data)
-		log.Info("Output:  \n%v", out)
+		log.Info("Output: (%v)  \n%v", command.Name, out)
 	} else if command.Type == "bash" {
 		out, err := scriptExec(command.Exec, data)
 		if err != nil {
 			log.Error("Error %v:", err)
 		}
 		log.Debug("Received Data %v", data)
-		log.Info("Output:  \n%v", out)
-	} else if command.Type == "http" {
-
+		log.Info("Output: (%v)  \n%v", command.Name, out)
 	}
+
+	return nil
 }
 
 func validateAvro(command Command, data string) error {
@@ -106,11 +106,17 @@ func validateJSON(command Command, data string) error {
 		log.Info("Data is valid & verified")
 	} else {
 		log.Error("The document is not valid. see errors :")
-		for _, desc := range result.Errors() {
+		errorStr := ""
+		for inte, desc := range result.Errors() {
 			log.Error("- %s", desc)
+			if inte > 0 {
+				errorStr += "," + desc.Description()
+			} else {
+				errorStr += desc.Description()
+			}
 		}
 		if len(result.Errors()) != 0 {
-			return fmt.Errorf("JSON validation failed")
+			return fmt.Errorf(errorStr)
 		}
 	}
 
@@ -134,11 +140,11 @@ func cmdExec(args ...string) (string, error) {
 }
 
 func scriptExec(scriptName string, data string) (string, error) {
-	err := os.Chmod(scriptName,0744)
+	err := os.Chmod(scriptName, 0744)
 	if err != nil {
 		return "", err
 	}
-	
+
 	cmd := exec.Command(scriptName)
 	cmd.Env = os.Environ()
 
@@ -149,7 +155,7 @@ func scriptExec(scriptName string, data string) (string, error) {
 	// env variables definition
 	param := reflectValue.MapRange()
 	for param.Next() {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s",param.Key(), param.Value()))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", param.Key(), param.Value()))
 	}
 
 	out, err := cmd.Output()
