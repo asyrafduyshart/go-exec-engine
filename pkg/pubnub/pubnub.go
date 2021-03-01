@@ -49,7 +49,7 @@ func Init() *Data {
 				fmt.Println(fmt.Sprintf("msg.Timetoken: %d", msg.Timetoken))
 			case presence := <-listener.Presence:
 				fmt.Println(" --- PRESENCE: ")
-				fmt.Println(fmt.Sprintf("%s", presence))
+				fmt.Println(fmt.Sprintf("%s", presence.Channel))
 			}
 		}
 	}()

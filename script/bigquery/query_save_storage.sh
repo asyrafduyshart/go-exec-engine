@@ -22,14 +22,15 @@ runBigQuery() {
         echo "\$storageLocation is NOT empty"
         uri=$storageLocation
     fi
-    bq query --use_legacy_sql=false "EXPORT DATA OPTIONS(uri='$uri',  format='JSON', compression='GZIP', overwrite=true) AS $query"
+    bq query --use_legacy_sql=false "EXPORT DATA OPTIONS(uri='$uri',  format='JSON', compression='GZIP', overwrite=true) AS $query" > ./script/bigquery/log/result.log
     if [ $? -eq 0 ]; then
         sendPubNub 'pubnub_onboarding_channel' 'BigQuery Execution Success'
-        echo OK
+        echo 'BigQuery Execution Success'
     else
         sendPubNub 'pubnub_onboarding_channel' 'BigQuery Execution Failed'
-        echo FAIL
+        echo 'BigQuery Execution Failed'
     fi
+    echo (cat ./script/bigquery/log/result.log)
 }
 
 runBigQuery
