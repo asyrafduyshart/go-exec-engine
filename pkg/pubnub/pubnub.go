@@ -57,7 +57,7 @@ func Init() *Data {
 	pn.AddListener(listener)
 
 	pn.Subscribe().
-		Channels([]string{"pubnub_onboarding_channel"}).
+		Channels([]string{os.Getenv("PUBNUB_CHANNEL_LISTENER")}).
 		WithPresence(true).
 		Execute()
 
