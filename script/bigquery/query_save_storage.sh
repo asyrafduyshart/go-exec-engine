@@ -17,7 +17,7 @@ runBigQuery() {
     if [ -z "$storageLocation" ]
     then
         echo "\$storageLocation is empty, proceed with default uri"
-        uri="gs://lido-white-label-data/production/test-avro/backup-$timestamp-*"
+        uri="gs://lido-white-label-data/production/big-query/exec-engine-result/backup/backup-$timestamp-*"
     else
         echo "\$storageLocation is NOT empty"
         uri=$storageLocation
