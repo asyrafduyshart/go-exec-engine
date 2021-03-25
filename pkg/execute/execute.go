@@ -32,12 +32,12 @@ func Execute(command Command, data string) error {
 
 	if command.Validate {
 		if command.SchemaType == "avro" {
-			if err := validateAvro(command, data); err != nil {
+			if err := ValidateAvro(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 				return err
 			}
 		} else if command.SchemaType == "json" {
-			if err := validateJSON(command, data); err != nil {
+			if err := ValidateJSON(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 				return err
 			}
@@ -67,7 +67,7 @@ func Execute(command Command, data string) error {
 	return nil
 }
 
-func validateAvro(command Command, data string) error {
+func ValidateAvro(command Command, data string) error {
 	content, err := ioutil.ReadFile(command.Schema)
 	if err != nil {
 		log.Error("Error readfile: %v", err)
@@ -89,7 +89,7 @@ func validateAvro(command Command, data string) error {
 	return nil
 }
 
-func validateJSON(command Command, data string) error {
+func ValidateJSON(command Command, data string) error {
 	content, err := ioutil.ReadFile(command.Schema)
 	if err != nil {
 		log.Error("Error readfile: %v", err)

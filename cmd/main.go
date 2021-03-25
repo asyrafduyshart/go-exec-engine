@@ -158,12 +158,34 @@ func shutdownHook() {
 	}()
 }
 
-func handleExecute(commmad execute.Command) func(c *fiber.Ctx) error {
+func handleExecute(comm execute.Command) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		go execute.Execute(commmad, string(c.Body()))
+
+		if comm.Validate {
+			if comm.SchemaType == "avro" {
+				if err := execute.ValidateAvro(comm, string(c.Body())); err != nil {
+					log.Error("Trigger: \"%v\" will not be executed", comm.Name)
+					return c.Status(400).JSON(map[string]string{
+						"type":    "ERROR",
+						"message": err.Error(),
+					})
+				}
+			} else if comm.SchemaType == "json" {
+				if err := execute.ValidateJSON(comm, string(c.Body())); err != nil {
+					log.Error("Trigger: \"%v\" will not be executed", comm.Name)
+					return c.Status(400).JSON(map[string]string{
+						"type":    "ERROR",
+						"message": err.Error(),
+					})
+				}
+			}
+		}
+
+		go execute.Execute(comm, string(c.Body()))
+
 		return c.JSON(map[string]string{
 			"type":    "SUCCESS",
-			"message": "Task:" + commmad.Name + " has been executed",
+			"message": "Task:" + comm.Name + " has been executed",
 		})
 	}
 }
