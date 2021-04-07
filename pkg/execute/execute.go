@@ -47,21 +47,21 @@ func Execute(command Command, data string) error {
 	if command.Type == "exec" {
 		s := strconv.Quote(string(data))
 		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
+		log.Debug("Received Data %v", data)
 		out, err := cmdExec(exec...)
 		log.Info("Output: (%v)  \n%v", command.Name, out)
 		if err != nil {
 			log.Error("Error %v:", err)
 			return err
 		}
-		log.Debug("Received Data %v", data)
 	} else if command.Type == "bash" {
+		log.Debug("Received Data %v", data)
 		out, err := scriptExec(command.Exec, data)
 		log.Info("Output: (%v)  \n%v", command.Name, out)
 		if err != nil {
 			log.Error("Error %v:", err)
 			return err
 		}
-		log.Debug("Received Data %v", data)
 	}
 
 	return nil
