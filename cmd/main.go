@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	execute "github.com/asyrafduyshart/go-exec-engine/pkg/execute"
+	"github.com/asyrafduyshart/go-exec-engine/pkg/jwt"
 	"github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
 	"github.com/go-playground/validator"
 
@@ -27,6 +28,7 @@ import (
 type Config struct {
 	AccessLog string            `yaml:"access_log"`
 	LogLevel  string            `yaml:"log_level"`
+	JwksUrl   string            `yaml:"jwks_url"`
 	Command   []execute.Command `yaml:"commands,flow"`
 }
 
@@ -213,7 +215,16 @@ func main() {
 				count++
 			} else if command.Protocol == "http" {
 				app.Post(command.Target, func(c *fiber.Ctx) error {
-					err := execute.Execute(command, string(c.Body()))
+					auth := string(c.Request().Header.Peek("Authorization"))
+					jwksUrl := conf.JwksUrl
+					err := jwt.ValidateAuth(auth, jwksUrl)
+					if err != nil {
+						return c.JSON(map[string]string{
+							"type":    "ERROR",
+							"message": err.Error(),
+						})
+					}
+					err = execute.Execute(command, string(c.Body()))
 					if err != nil {
 						return c.JSON(map[string]string{
 							"type":    "ERROR",

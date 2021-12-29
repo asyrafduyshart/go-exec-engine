@@ -16,14 +16,15 @@ import (
 
 // Command ..
 type Command struct {
-	Name       string `yaml:"name" validate:"required,alphanumunicode"`
-	Protocol   string `yaml:"protocol"`
-	Target     string `yaml:"target" validate:"required"`
-	Exec       string `yaml:"exec" validate:"required"`
-	Type       string `yaml:"type" validate:"required,oneof=http bash exec"`
-	Validate   bool   `yaml:"validate"`
-	Schema     string `yaml:"schema"`
-	SchemaType string `yaml:"schema-type" validate:"oneof=json avro"`
+	Name           string `yaml:"name" validate:"required,alphanumunicode"`
+	Protocol       string `yaml:"protocol"`
+	Target         string `yaml:"target" validate:"required"`
+	Exec           string `yaml:"exec" validate:"required"`
+	Type           string `yaml:"type" validate:"required,oneof=http bash exec"`
+	Validate       bool   `yaml:"validate"`
+	Schema         string `yaml:"schema"`
+	SchemaType     string `yaml:"schema-type" validate:"oneof=json avro"`
+	Authentication bool   `yaml:"authentication"`
 }
 
 // Execute ..
@@ -43,7 +44,6 @@ func Execute(command Command, data string) error {
 			}
 		}
 	}
-
 	if command.Type == "exec" {
 		s := strconv.Quote(string(data))
 		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
