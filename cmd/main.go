@@ -219,14 +219,14 @@ func main() {
 					jwksUrl := conf.JwksUrl
 					err := jwt.ValidateAuth(auth, jwksUrl)
 					if err != nil {
-						return c.JSON(map[string]string{
+						return c.Status(403).JSON(map[string]string{
 							"type":    "ERROR",
 							"message": err.Error(),
 						})
 					}
 					err = execute.Execute(command, string(c.Body()))
 					if err != nil {
-						return c.JSON(map[string]string{
+						return c.Status(500).JSON(map[string]string{
 							"type":    "ERROR",
 							"message": err.Error(),
 						})
