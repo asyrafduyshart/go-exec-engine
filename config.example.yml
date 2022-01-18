@@ -1,4 +1,5 @@
 log_level: debug
+jwks_url: "https://url/.well-known/jwks.json"
 access_log:
 commands:
   - name: "trigger"
@@ -21,6 +22,7 @@ commands:
     target: "/deploy/frontend"
     type: "bash"
     exec: "./deploy-frontend.sh"
+    authentication: true
     validate: true
     schema-type: "json"
     schema: "./schema/deploy-frontend.json"
