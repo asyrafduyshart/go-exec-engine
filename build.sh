@@ -43,7 +43,7 @@ GOPATH=$BUILD_DIR:$GOPATH
 # Build the project
 cd $BUILD_DIR
 mkdir -p bin
-go build ./cmd/main.go
+env GOOS=linux GOARCH=amd64 go build ./cmd/main.go
 mv main ./goexec
 
 EXIT_STATUS=$?
