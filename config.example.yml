@@ -29,7 +29,7 @@ commands:
         - employee
         - engineer
       scope: 
-        -  read:write 
+        - user:read_write
     validate: true
     schema-type: "json"
     schema: "./schema/deploy-frontend.json"

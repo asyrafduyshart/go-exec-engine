@@ -215,19 +215,27 @@ func main() {
 				count++
 			} else if command.Protocol == "http" {
 				app.Post(command.Target, func(c *fiber.Ctx) error {
-					auth := string(c.Request().Header.Peek("Authorization"))
-					jwksUrl := conf.JwksUrl
-					// Validate Token
-					token, err := jwt.ValidateAuth(auth, jwksUrl)
-					if err != nil {
-						return c.Status(403).JSON(map[string]string{
-							"type":    "ERROR",
-							"message": err.Error(),
-						})
+					if command.Authentication {
+						auth := string(c.Request().Header.Peek("Authorization"))
+						jwksUrl := conf.JwksUrl
+						// Validate Token
+						token, err := jwt.ValidateAuth(auth, jwksUrl)
+						if err != nil {
+							return c.Status(401).JSON(map[string]string{
+								"type":    "ERROR",
+								"message": err.Error(),
+							})
+						}
+						// Validate Claim
+						claims := jwt.ValidateClaimValue(token, command.ValidateClaim)
+						if !claims {
+							return c.Status(403).JSON(map[string]string{
+								"type":    "ERROR",
+								"message": "unauthorized.",
+							})
+						}
+						fmt.Println("claim status", claims)
 					}
-
-					// Validate Claim
-					jwt.ValidateClaimValue(token, command.ValidateClaim)
 
 					err = execute.Execute(command, string(c.Body()))
 					if err != nil {
