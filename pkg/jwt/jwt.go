@@ -3,11 +3,11 @@ package jwt
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
+	tools "github.com/asyrafduyshart/go-exec-engine/tools"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/lestrrat-go/jwx/jwk"
 )
@@ -42,15 +42,18 @@ func ValidateAuth(auth string, jwksUrl string) (interface{}, error) {
 	return tkn, nil
 }
 
-func ValidateClaimValue(token interface{}, validateClaim map[string][]string) {
+func ValidateClaimValue(token interface{}, validateClaim map[string][]string) bool {
 	val := reflect.ValueOf(token).Elem()
 	n := val.FieldByName("Claims").Interface().(jwt.MapClaims)
-
+	var claimStatus = false
 	for key, element := range validateClaim {
-		fmt.Println("Key:", key, "=>", "Element:", element)
+		objClaim := n[key].(string)
+		claimStatus = tools.Contains(element, objClaim)
+		if !claimStatus {
+			break
+		}
 	}
-
-	log.Info("value: %v", n["scope"].(string))
+	return claimStatus
 }
 
 func validateBearer(auth string) (string, error) {
