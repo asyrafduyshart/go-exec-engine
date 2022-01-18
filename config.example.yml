@@ -23,6 +23,13 @@ commands:
     type: "bash"
     exec: "./deploy-frontend.sh"
     authentication: true
+    validate-claim: 
+      role: 
+        - admin
+        - employee
+        - engineer
+      scope: 
+        -  read:write 
     validate: true
     schema-type: "json"
     schema: "./schema/deploy-frontend.json"

@@ -3,6 +3,8 @@ package jwt
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 
 	log "github.com/asyrafduyshart/go-exec-engine/pkg/log"
@@ -23,18 +25,32 @@ type Keys struct {
 	E   string `json:"e"`
 }
 
-func ValidateAuth(auth string, jwksUrl string) error {
+type DataJWT map[string]interface{}
+
+func ValidateAuth(auth string, jwksUrl string) (interface{}, error) {
 	tokenString, err := validateBearer(auth)
 	if err != nil {
 		log.Error("Error validate berarer token: %v", err)
-		return err
+		return nil, err
 	}
-	_, err = verify(tokenString, jwksUrl)
+	tkn, err := verify(tokenString, jwksUrl)
 	if err != nil {
 		log.Error("err while parse: %v", err)
-
+		return nil, err
 	}
-	return err
+
+	return tkn, nil
+}
+
+func ValidateClaimValue(token interface{}, validateClaim map[string][]string) {
+	val := reflect.ValueOf(token).Elem()
+	n := val.FieldByName("Claims").Interface().(jwt.MapClaims)
+
+	for key, element := range validateClaim {
+		fmt.Println("Key:", key, "=>", "Element:", element)
+	}
+
+	log.Info("value: %v", n["scope"].(string))
 }
 
 func validateBearer(auth string) (string, error) {
@@ -55,6 +71,7 @@ func verify(tokenString string, url string) (interface{}, error) {
 	}
 
 	tkn, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+
 		kid, status := token.Header["kid"].(string)
 		if !status {
 			log.Error("kid header not found")

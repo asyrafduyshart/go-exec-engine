@@ -16,15 +16,16 @@ import (
 
 // Command ..
 type Command struct {
-	Name           string `yaml:"name" validate:"required,alphanumunicode"`
-	Protocol       string `yaml:"protocol"`
-	Target         string `yaml:"target" validate:"required"`
-	Exec           string `yaml:"exec" validate:"required"`
-	Type           string `yaml:"type" validate:"required,oneof=http bash exec"`
-	Validate       bool   `yaml:"validate"`
-	Schema         string `yaml:"schema"`
-	SchemaType     string `yaml:"schema-type" validate:"oneof=json avro"`
-	Authentication bool   `yaml:"authentication"`
+	Name           string              `yaml:"name" validate:"required,alphanumunicode"`
+	Protocol       string              `yaml:"protocol"`
+	Target         string              `yaml:"target" validate:"required"`
+	Exec           string              `yaml:"exec" validate:"required"`
+	Type           string              `yaml:"type" validate:"required,oneof=http bash exec"`
+	Validate       bool                `yaml:"validate"`
+	Schema         string              `yaml:"schema"`
+	SchemaType     string              `yaml:"schema-type" validate:"oneof=json avro"`
+	Authentication bool                `yaml:"authentication"`
+	ValidateClaim  map[string][]string `yaml:"validate-claim"`
 }
 
 // Execute ..

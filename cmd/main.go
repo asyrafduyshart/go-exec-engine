@@ -217,13 +217,18 @@ func main() {
 				app.Post(command.Target, func(c *fiber.Ctx) error {
 					auth := string(c.Request().Header.Peek("Authorization"))
 					jwksUrl := conf.JwksUrl
-					err := jwt.ValidateAuth(auth, jwksUrl)
+					// Validate Token
+					token, err := jwt.ValidateAuth(auth, jwksUrl)
 					if err != nil {
 						return c.Status(403).JSON(map[string]string{
 							"type":    "ERROR",
 							"message": err.Error(),
 						})
 					}
+
+					// Validate Claim
+					jwt.ValidateClaimValue(token, command.ValidateClaim)
+
 					err = execute.Execute(command, string(c.Body()))
 					if err != nil {
 						return c.Status(500).JSON(map[string]string{
