@@ -12,6 +12,7 @@ import (
 
 	execute "github.com/asyrafduyshart/go-exec-engine/pkg/execute"
 	"github.com/asyrafduyshart/go-exec-engine/pkg/jwt"
+	pb "github.com/asyrafduyshart/go-exec-engine/pkg/pubnub"
 	"github.com/asyrafduyshart/go-exec-engine/pkg/pubsub"
 	"github.com/go-playground/validator"
 
@@ -26,10 +27,11 @@ import (
 
 // Config ...
 type Config struct {
-	AccessLog string            `yaml:"access_log"`
-	LogLevel  string            `yaml:"log_level"`
-	JwksUrl   string            `yaml:"jwks_url"`
-	Command   []execute.Command `yaml:"commands,flow"`
+	AccessLog    string            `yaml:"access_log"`
+	LogLevel     string            `yaml:"log_level"`
+	PubNubServer bool              `yaml:"pubnub_server"`
+	JwksUrl      string            `yaml:"jwks_url"`
+	Command      []execute.Command `yaml:"commands,flow"`
 }
 
 const (
@@ -233,6 +235,10 @@ func main() {
 		log.LogLevelNum = 4
 	}
 
+	// if err != nil {
+	// 	log.Error("Error pubnub %v", err)
+	// }
+
 	// log.Debug("Config Content: %v", conf)
 	count := 0
 	exitChan := make(chan int)
@@ -253,8 +259,8 @@ func main() {
 			switch command.Protocol {
 			case "pubsub":
 				go func(c execute.Command) {
-					err := pubsub.PullMsgs(ctx, "lido-white-label", c.Target, func(data string) {
-						execute.Execute(c, data)
+					err := pubsub.PullMsgs(ctx, os.Getenv("PROJECT_ID"), c.Target, func(data string) {
+						go execute.Execute(c, data)
 					})
 					if err != nil {
 						log.Error("Error in topic %v", c.Target)
@@ -265,7 +271,6 @@ func main() {
 					exitChan <- 0
 				}(command)
 				count++
-
 			case "http":
 				app.Post(command.Target, handleExecute(conf, command))
 			}
@@ -275,6 +280,41 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Execute Engine is Working!")
 	})
+
+	if conf.PubNubServer {
+		pubsubApp := fiber.New()
+		pn := pb.Init()
+		type PubNubReq struct {
+			Message string `json:"message" xml:"pass" form:"pass"`
+		}
+		pubsubApp.Post("/pubnub/publish/:cname", func(c *fiber.Ctx) error {
+			pnr := new(PubNubReq)
+			cname := c.Params("cname")
+			if err := c.BodyParser(pnr); err != nil {
+				fmt.Println("error = ", err)
+				return c.Status(400).JSON(map[string]string{
+					"type":    "ERROR",
+					"message": err.Error(),
+				})
+			}
+
+			_, _, err := pn.PushMessage(cname, pnr.Message)
+			if err != nil {
+				fmt.Println("error = ", err)
+				return c.Status(400).JSON(map[string]string{
+					"type":    "ERROR",
+					"message": err.Error(),
+				})
+			}
+
+			return c.JSON(map[string]string{
+				"type":    "SUCCESS",
+				"channel": cname,
+				"message": pnr.Message,
+			})
+		})
+		go pubsubApp.Listen(fmt.Sprintf("0.0.0.0:%s", "7001"))
+	}
 
 	// os.Setenv("PORT","3000")
 	port := os.Getenv("PORT")
