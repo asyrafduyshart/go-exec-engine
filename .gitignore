@@ -16,6 +16,9 @@ go-reverse-proxy
 
 goinx
 web/
+script/*
+schema/*
+*.sh
 www/
 postman
 test.sh

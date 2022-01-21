@@ -34,12 +34,12 @@ func Execute(command Command, data string) error {
 
 	if command.Validate {
 		if command.SchemaType == "avro" {
-			if err := validateAvro(command, data); err != nil {
+			if err := ValidateAvro(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 				return err
 			}
 		} else if command.SchemaType == "json" {
-			if err := validateJSON(command, data); err != nil {
+			if err := ValidateJSON(command, data); err != nil {
 				log.Error("Trigger: \"%v\" will not be executed", command.Name)
 				return err
 			}
@@ -48,25 +48,27 @@ func Execute(command Command, data string) error {
 	if command.Type == "exec" {
 		s := strconv.Quote(string(data))
 		exec := []string{"bash", "-c", "echo " + s + " |" + " " + command.Exec}
+		log.Debug("Received Data %v", data)
 		out, err := cmdExec(exec...)
+		log.Info("Output: (%v)  \n%v", command.Name, out)
 		if err != nil {
 			log.Error("Error %v:", err)
+			return err
 		}
-		log.Debug("Received Data %v", data)
-		log.Info("Output: (%v)  \n%v", command.Name, out)
 	} else if command.Type == "bash" {
+		log.Debug("Received Data %v", data)
 		out, err := scriptExec(command.Exec, data)
+		log.Info("Output: (%v)  \n%v", command.Name, out)
 		if err != nil {
 			log.Error("Error %v:", err)
+			return err
 		}
-		log.Debug("Received Data %v", data)
-		log.Info("Output: (%v)  \n%v", command.Name, out)
 	}
 
 	return nil
 }
 
-func validateAvro(command Command, data string) error {
+func ValidateAvro(command Command, data string) error {
 	content, err := ioutil.ReadFile(command.Schema)
 	if err != nil {
 		log.Error("Error readfile: %v", err)
@@ -88,7 +90,7 @@ func validateAvro(command Command, data string) error {
 	return nil
 }
 
-func validateJSON(command Command, data string) error {
+func ValidateJSON(command Command, data string) error {
 	content, err := ioutil.ReadFile(command.Schema)
 	if err != nil {
 		log.Error("Error readfile: %v", err)
@@ -162,7 +164,7 @@ func scriptExec(scriptName string, data string) (string, error) {
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Println("the err", err)
-		return "", err
+		return string(out), err
 	}
 	return string(out), nil
 }
